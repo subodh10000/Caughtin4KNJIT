@@ -547,7 +547,7 @@ async function notifyNJIT(emailData, results, aiResults) {
       );
 
       // Open mailto link to NJIT IST Service Desk
-      window.location.href = `mailto:servicedesk@njit.edu?subject=${subject}&body=${body}`;
+      window.location.href = `mailto:kathayatsubodh@gmail.com?subject=${subject}&body=${body}`;
 
       // Re-enable button
       if (notifyBtn) {
@@ -574,7 +574,7 @@ async function notifyNJIT(emailData, results, aiResults) {
       const body = encodeURIComponent(alertEmail.body);
 
       // Open mailto link to NJIT IST Service Desk
-      window.location.href = `mailto:servicedesk@njit.edu?subject=${subject}&body=${body}`;
+      window.location.href = `mailto:kathayatsubodh@gmail.com?subject=${subject}&body=${body}`;
 
       // Re-enable button with success message
       if (notifyBtn) {

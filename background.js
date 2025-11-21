@@ -69,61 +69,96 @@ function getBadgeColor(probability) {
  * Handle Claude AI analysis request
  */
 async function handleClaudeAnalysis(emailData, apiKey) {
-  try {
-    const prompt = buildPrompt(emailData);
+  // Try multiple models in order of preference
+  const models = [
+    'claude-3-5-sonnet-20241022',
+    'claude-3-5-sonnet-20240620',
+    'claude-3-sonnet-20240229',
+    'claude-3-haiku-20240307'
+  ];
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20240620',
-        max_tokens: 1024,
-        messages: [
-          {
-            role: 'user',
-            content: prompt
-          }
-        ]
-      })
-    });
+  let lastError = null;
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Claude API error: ${response.status} - ${errorText}`);
+  for (const model of models) {
+    try {
+      const prompt = buildPrompt(emailData);
+
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: model,
+          max_tokens: 1024,
+          messages: [
+            {
+              role: 'user',
+              content: prompt
+            }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const error = new Error(`Claude API error with ${model}: ${response.status} - ${errorText}`);
+
+        // If model not found, try next model
+        if (response.status === 404 && errorText.includes('not_found_error')) {
+          console.log(`Model ${model} not available, trying next...`);
+          lastError = error;
+          continue;
+        }
+
+        throw error;
+      }
+
+      const data = await response.json();
+
+      // Extract JSON from Claude's response
+      const content = data.content[0].text;
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+
+      if (!jsonMatch) {
+        throw new Error('Failed to parse Claude response');
+      }
+
+      const analysis = JSON.parse(jsonMatch[0]);
+
+      console.log(`Successfully analyzed with model: ${model}`);
+
+      return {
+        success: true,
+        probability: analysis.probability || 0,
+        riskLevel: analysis.riskLevel || 'safe',
+        redFlags: analysis.redFlags || [],
+        reasoning: analysis.reasoning || '',
+        confidence: analysis.confidence || 0
+      };
+
+    } catch (error) {
+      // If not a model-not-found error, throw it
+      if (!error.message.includes('not_found_error')) {
+        console.error('Claude API error:', error);
+        return {
+          success: false,
+          error: error.message
+        };
+      }
+      lastError = error;
     }
-
-    const data = await response.json();
-
-    // Extract JSON from Claude's response
-    const content = data.content[0].text;
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-
-    if (!jsonMatch) {
-      throw new Error('Failed to parse Claude response');
-    }
-
-    const analysis = JSON.parse(jsonMatch[0]);
-
-    return {
-      success: true,
-      probability: analysis.probability || 0,
-      riskLevel: analysis.riskLevel || 'safe',
-      redFlags: analysis.redFlags || [],
-      reasoning: analysis.reasoning || '',
-      confidence: analysis.confidence || 0
-    };
-  } catch (error) {
-    console.error('Claude API error:', error);
-    return {
-      success: false,
-      error: error.message
-    };
   }
+
+  // If all models failed, return the last error
+  console.error('All Claude models failed:', lastError);
+  return {
+    success: false,
+    error: lastError ? lastError.message : 'All models unavailable'
+  };
 }
 
 /**

@@ -216,6 +216,24 @@
   box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
 }
 
+.btn-notify-njit {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-weight: 700;
+}
+
+.btn-notify-njit:hover {
+  background: linear-gradient(135deg, #5568d3 0%, #653a8b 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 12px rgba(102, 126, 234, 0.4);
+}
+
+.btn-notify-njit:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+  transform: none;
+}
+
 .btn-dismiss {
   background: #9E9E9E;
   color: white;

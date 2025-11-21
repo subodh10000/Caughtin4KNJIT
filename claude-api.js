@@ -120,6 +120,50 @@ class ClaudeAPI {
   }
 
   /**
+   * Generate alert email for NJIT IST Service Desk
+   * @param {Object} emailData - The scam email data
+   * @param {Object} analysisResults - The analysis results
+   * @returns {Object} Generated email content
+   */
+  async generateAlertEmail(emailData, analysisResults) {
+    if (!this.isConfigured()) {
+      return {
+        success: false,
+        error: 'Claude API not configured'
+      };
+    }
+
+    try {
+      // Send message to background script to generate alert email
+      const response = await chrome.runtime.sendMessage({
+        type: 'generateNJITAlert',
+        emailData: emailData,
+        analysisResults: analysisResults,
+        apiKey: this.apiKey
+      });
+
+      if (response.success) {
+        return {
+          success: true,
+          subject: response.subject,
+          body: response.body
+        };
+      } else {
+        return {
+          success: false,
+          error: response.error || 'Unknown error'
+        };
+      }
+    } catch (error) {
+      console.error('Error generating alert email:', error);
+      return {
+        success: false,
+        error: error.message || 'Failed to generate alert email'
+      };
+    }
+  }
+
+  /**
    * Build the prompt for Claude analysis
    */
   buildPrompt(emailData) {

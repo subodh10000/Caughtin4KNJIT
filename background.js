@@ -30,6 +30,14 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         sendResponse({ success: false, error: error.message });
       });
     return true; // Keep channel open for async response
+  } else if (request.type === 'generateNJITAlert') {
+    // Handle NJIT alert email generation
+    handleNJITAlertGeneration(request.emailData, request.analysisResults, request.apiKey)
+      .then(sendResponse)
+      .catch(error => {
+        sendResponse({ success: false, error: error.message });
+      });
+    return true; // Keep channel open for async response
   } else if (request.type === 'apiKeyUpdated') {
     // Broadcast to all Gmail tabs
     chrome.tabs.query({ url: 'https://mail.google.com/*' }, (tabs) => {
@@ -161,6 +169,150 @@ async function handleClaudeAnalysis(emailData, apiKey) {
     success: false,
     error: lastError ? lastError.message : 'All models unavailable'
   };
+}
+
+/**
+ * Handle NJIT alert email generation
+ */
+async function handleNJITAlertGeneration(emailData, analysisResults, apiKey) {
+  const models = [
+    'claude-3-5-sonnet-20241022',
+    'claude-3-5-sonnet-20240620',
+    'claude-3-sonnet-20240229',
+    'claude-3-haiku-20240307'
+  ];
+
+  let lastError = null;
+
+  for (const model of models) {
+    try {
+      const prompt = buildNJITAlertPrompt(emailData, analysisResults);
+
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: model,
+          max_tokens: 2048,
+          messages: [
+            {
+              role: 'user',
+              content: prompt
+            }
+          ]
+        })
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        const error = new Error(`Claude API error with ${model}: ${response.status} - ${errorText}`);
+
+        if (response.status === 404 && errorText.includes('not_found_error')) {
+          console.log(`Model ${model} not available, trying next...`);
+          lastError = error;
+          continue;
+        }
+
+        throw error;
+      }
+
+      const data = await response.json();
+      const content = data.content[0].text;
+
+      // Extract JSON from Claude's response
+      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error('Failed to parse Claude response');
+      }
+
+      const alertData = JSON.parse(jsonMatch[0]);
+
+      console.log(`Successfully generated NJIT alert with model: ${model}`);
+
+      return {
+        success: true,
+        subject: alertData.subject || 'SCAM ALERT: Potential Phishing Email Detected',
+        body: alertData.body || 'Alert email body'
+      };
+
+    } catch (error) {
+      if (!error.message.includes('not_found_error')) {
+        console.error('NJIT alert generation error:', error);
+        return {
+          success: false,
+          error: error.message
+        };
+      }
+      lastError = error;
+    }
+  }
+
+  console.error('All Claude models failed for NJIT alert:', lastError);
+  return {
+    success: false,
+    error: lastError ? lastError.message : 'All models unavailable'
+  };
+}
+
+/**
+ * Build prompt for NJIT alert email generation
+ */
+function buildNJITAlertPrompt(emailData, analysisResults) {
+  const redFlagsText = analysisResults.aiResults?.redFlags?.length > 0
+    ? analysisResults.aiResults.redFlags.map(flag => `- ${flag}`).join('\n')
+    : analysisResults.detectedPatterns?.map(p => `- ${p.category}: ${p.matches.join(', ')}`).join('\n') || 'See analysis below';
+
+  const aiReasoning = analysisResults.aiResults?.reasoning || 'Automated scam detection analysis detected multiple red flags in this email.';
+
+  return `You are writing a professional security alert email to NJIT's IST Service Desk on behalf of a student who received a potential scam/phishing email.
+
+<scam_email_details>
+Subject: ${emailData.subject}
+Sender: ${emailData.sender}
+Scam Probability: ${analysisResults.probability}%
+Risk Level: ${analysisResults.riskLevel.toUpperCase()}
+
+Body Preview:
+${emailData.body.substring(0, 500)}${emailData.body.length > 500 ? '...' : ''}
+
+Links Found:
+${emailData.links && emailData.links.length > 0 ? emailData.links.slice(0, 5).join('\n') : 'No links detected'}
+
+AI Analysis:
+${aiReasoning}
+
+Detected Red Flags:
+${redFlagsText}
+</scam_email_details>
+
+<task>
+Generate a professional, clear, and actionable alert email to ServiceDesk@njit.edu. The email should:
+
+1. Be professional and concise
+2. Clearly identify this as a scam alert from a student
+3. Include key details about the scam email (subject, sender, risk level)
+4. Highlight the most critical red flags
+5. Request that IST alert other students to prevent them from falling for this scam
+6. Express urgency appropriate to the risk level
+7. Thank them for their attention
+
+The tone should be:
+- Professional but urgent
+- Clear and actionable
+- Respectful of IST's time
+- Emphasize protecting other students
+</task>
+
+Respond with ONLY a valid JSON object (no markdown, no code blocks):
+{
+  "subject": "<concise email subject line that clearly indicates scam alert>",
+  "body": "<complete email body with greeting, details, request, and closing>"
+}`;
 }
 
 /**

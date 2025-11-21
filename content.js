@@ -286,12 +286,55 @@ function displayWarning(emailData, results, aiResults, headerResults, linkResult
   if (aiResults && aiResults.reasoning) {
     content += `
       <div class="warning-section ai-section">
-        <strong>AI Analysis:</strong>
-        <p>${aiResults.reasoning}</p>
+        <div class="ai-header">
+          <strong>🤖 Claude AI Analysis</strong>
+          ${aiResults.model ? `<span class="ai-model">${aiResults.model}</span>` : ''}
+        </div>
+        <div class="ai-reasoning">
+          <strong>Assessment:</strong>
+          <p>${aiResults.reasoning}</p>
+        </div>
         ${aiResults.redFlags.length > 0 ? `
-          <div><strong>Red Flags:</strong> ${aiResults.redFlags.join(', ')}</div>
+          <div class="ai-red-flags">
+            <strong>🚩 Red Flags Detected:</strong>
+            <ul>
+              ${aiResults.redFlags.map(flag => `<li>${flag}</li>`).join('')}
+            </ul>
+          </div>
         ` : ''}
-        <div class="ai-confidence">Confidence: ${aiResults.confidence}%</div>
+        ${aiResults.chainOfThought ? `
+          <div class="chain-of-thought">
+            <div class="section-header" onclick="this.parentElement.classList.toggle('expanded')">
+              <strong>🧠 AI Chain-of-Thought Reasoning</strong>
+              <span class="expand-icon">▼</span>
+            </div>
+            <div class="section-content">
+              <div class="thought-item">
+                <strong>Sender Analysis:</strong>
+                <p>${aiResults.chainOfThought.senderAnalysis}</p>
+              </div>
+              <div class="thought-item">
+                <strong>Content Analysis:</strong>
+                <p>${aiResults.chainOfThought.contentAnalysis}</p>
+              </div>
+              <div class="thought-item">
+                <strong>Link Analysis:</strong>
+                <p>${aiResults.chainOfThought.linkAnalysis}</p>
+              </div>
+              <div class="thought-item">
+                <strong>Context Analysis:</strong>
+                <p>${aiResults.chainOfThought.contextAnalysis}</p>
+              </div>
+            </div>
+          </div>
+        ` : ''}
+        <div class="ai-confidence">
+          <span class="confidence-label">AI Confidence:</span>
+          <div class="confidence-bar">
+            <div class="confidence-fill" style="width: ${aiResults.confidence}%"></div>
+          </div>
+          <span class="confidence-value">${aiResults.confidence}%</span>
+        </div>
       </div>
     `;
   }

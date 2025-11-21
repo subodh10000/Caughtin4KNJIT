@@ -137,7 +137,9 @@ async function handleClaudeAnalysis(emailData, apiKey) {
         riskLevel: analysis.riskLevel || 'safe',
         redFlags: analysis.redFlags || [],
         reasoning: analysis.reasoning || '',
-        confidence: analysis.confidence || 0
+        confidence: analysis.confidence || 0,
+        chainOfThought: analysis.chainOfThought || null,
+        model: model
       };
 
     } catch (error) {
@@ -162,34 +164,105 @@ async function handleClaudeAnalysis(emailData, apiKey) {
 }
 
 /**
- * Build prompt for Claude analysis
+ * Build advanced prompt for Claude analysis with few-shot learning and chain-of-thought
  */
 function buildPrompt(emailData) {
-  return `You are an expert email security analyst. Analyze the following email for phishing and scam indicators.
+  return `You are an expert email security analyst specializing in phishing and scam detection. Use chain-of-thought reasoning to analyze this email.
 
-Email Details:
-- Subject: ${emailData.subject}
-- From: ${emailData.sender}
-- Body: ${emailData.body.substring(0, 2000)} ${emailData.body.length > 2000 ? '...' : ''}
-${emailData.links && emailData.links.length > 0 ? `- Links: ${emailData.links.slice(0, 10).join(', ')}` : ''}
+<examples>
+Example 1 - CRITICAL SCAM:
+Email: "Subject: URGENT: Your account will be suspended! From: security@paypa1-verify.com
+Body: Dear valued customer, We detected unusual activity. Click here immediately to verify your account or it will be locked permanently. http://paypal-verify.tk/login"
 
-Please analyze this email and respond with a JSON object containing:
+Analysis:
+1. Sender domain "paypa1-verify.com" uses number "1" instead of "l" - typosquatting
+2. Suspicious TLD ".tk" commonly used for phishing
+3. Creates artificial urgency ("immediately", "will be locked permanently")
+4. Generic greeting ("Dear valued customer") instead of personalized
+5. Requests immediate action without proper context
+Result: {"probability": 95, "riskLevel": "critical", "redFlags": ["Typosquatting domain (paypa1)", "Suspicious TLD .tk", "Urgent language", "Generic greeting", "Suspicious link"], "reasoning": "Multiple high-confidence phishing indicators: typosquatted domain mimicking PayPal, free suspicious TLD, urgency tactics, and link to fake login page", "confidence": 98}
+
+Example 2 - SAFE EMAIL:
+Email: "Subject: Your GitHub security alert From: noreply@github.com
+Body: Hi username, We detected a new login to your account from Chrome on Windows in New York. If this was you, no action needed. If not, secure your account here: https://github.com/settings/security"
+
+Analysis:
+1. Legitimate sender domain "github.com"
+2. HTTPS link to actual GitHub domain
+3. Informational tone, not demanding immediate action
+4. Provides specific details (device, browser, location)
+5. Offers optional action if needed
+Result: {"probability": 5, "riskLevel": "safe", "redFlags": [], "reasoning": "Legitimate security notification from verified GitHub domain with proper HTTPS links and reasonable, non-urgent tone", "confidence": 95}
+
+Example 3 - MEDIUM RISK:
+Email: "Subject: You've won! From: promotions@marketing-deals.com
+Body: Congratulations! You've been selected to receive a FREE iPhone 15. Click here to claim your prize. Limited time offer!"
+
+Analysis:
+1. Unexpected prize offer with no context
+2. Generic domain "marketing-deals.com" not associated with known brand
+3. Uses excitement/scarcity tactics ("FREE", "Limited time")
+4. Vague sender with no brand association
+5. No personalization or prior relationship
+Result: {"probability": 45, "riskLevel": "medium", "redFlags": ["Unsolicited prize offer", "Generic sender domain", "Urgency tactics", "Too good to be true offer"], "reasoning": "Likely marketing scam or prize phishing. No legitimate company gives away expensive prizes unsolicited", "confidence": 75}
+</examples>
+
+Now analyze this email using the same chain-of-thought approach:
+
+<email>
+Subject: ${emailData.subject}
+From: ${emailData.sender}
+Body: ${emailData.body.substring(0, 2000)}${emailData.body.length > 2000 ? '...' : ''}
+${emailData.links && emailData.links.length > 0 ? `Links found: ${emailData.links.slice(0, 10).join(', ')}` : 'No links found'}
+</email>
+
+<analysis_instructions>
+Step 1: Examine the sender domain for:
+- Typosquatting (g00gle.com, paypa1.com, micros0ft.com)
+- Suspicious TLDs (.tk, .ml, .ga, .cf, .gq)
+- Domain-display name mismatches
+- Free email services for business communication
+
+Step 2: Analyze the language for:
+- Urgency tactics ("immediate", "expires", "act now", "final notice")
+- Psychological manipulation (fear, greed, curiosity)
+- Generic greetings ("Dear customer" vs personalized)
+- Grammar and spelling errors
+- Excessive capitalization or punctuation
+
+Step 3: Evaluate requests for:
+- Credentials (username, password, 2FA codes)
+- Financial information (credit cards, bank accounts, SSN)
+- Personal data (DOB, address, phone)
+- Immediate action on links/attachments
+- Money transfers or gift cards
+
+Step 4: Inspect links for:
+- Domain mismatch (display text vs actual URL)
+- URL shorteners hiding destination
+- IP addresses instead of domains
+- HTTP vs HTTPS
+- Typosquatted domains
+
+Step 5: Consider context:
+- Is this expected communication?
+- Does sender match claimed organization?
+- Are there verifiable contact details?
+- Is the offer/request reasonable?
+</analysis_instructions>
+
+Respond with ONLY a valid JSON object (no markdown, no code blocks):
 {
-  "probability": <number 0-100 representing scam likelihood>,
-  "riskLevel": <"safe", "medium", "high", or "critical">,
-  "redFlags": [<array of specific red flags found>],
-  "reasoning": "<brief explanation of your assessment>",
-  "confidence": <number 0-100 representing confidence in assessment>
-}
-
-Focus on:
-- Sender legitimacy and domain authenticity
-- Urgency tactics and psychological manipulation
-- Requests for sensitive information
-- Suspicious links or attachments
-- Grammar and formatting issues
-- Impersonation attempts
-- Financial scam indicators
-
-Respond ONLY with the JSON object, no additional text.`;
+  "probability": <0-100 integer>,
+  "riskLevel": <"safe"|"medium"|"high"|"critical">,
+  "redFlags": [<array of specific red flags as strings>],
+  "reasoning": "<2-3 sentence explanation using insights from chain-of-thought analysis>",
+  "confidence": <0-100 integer>,
+  "chainOfThought": {
+    "senderAnalysis": "<brief assessment of sender legitimacy>",
+    "contentAnalysis": "<brief assessment of email content and tactics>",
+    "linkAnalysis": "<brief assessment of any links>",
+    "contextAnalysis": "<brief assessment of overall context and likelihood>"
+  }
+}`;
 }

@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Caughtin4KNJIT",
-  "version": "2.0.0",
-  "description": "Advanced Gmail scam detector with AI, email authentication (SPF/DKIM/DMARC), IP geolocation, and intelligent link analysis",
+  "version": "2.1.0",
+  "description": "AI-powered Gmail scam detector with Claude chain-of-thought reasoning, email authentication (SPF/DKIM/DMARC), advanced link analysis, and export capabilities",
   "permissions": [
     "activeTab",
     "storage"

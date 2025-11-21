@@ -210,6 +210,96 @@ function setupEventListeners() {
       document.getElementById('saveApiKey').click();
     }
   });
+
+  // Export as JSON
+  document.getElementById('exportJSON').addEventListener('click', async () => {
+    try {
+      const result = await chrome.storage.local.get(['scamStats']);
+      const stats = result.scamStats || {
+        totalScanned: 0,
+        scamsDetected: 0,
+        recentScans: []
+      };
+
+      const exportData = {
+        exportDate: new Date().toISOString(),
+        extension: 'Caughtin4KNJIT Gmail Scam Detector',
+        version: '2.1.0',
+        statistics: stats
+      };
+
+      downloadFile(
+        JSON.stringify(exportData, null, 2),
+        `scam-detector-report-${getFormattedDate()}.json`,
+        'application/json'
+      );
+
+      showMessage('Report exported successfully!', 'success');
+    } catch (error) {
+      showMessage('Error exporting data: ' + error.message, 'error');
+    }
+  });
+
+  // Export as CSV
+  document.getElementById('exportCSV').addEventListener('click', async () => {
+    try {
+      const result = await chrome.storage.local.get(['scamStats']);
+      const stats = result.scamStats || {
+        totalScanned: 0,
+        scamsDetected: 0,
+        recentScans: []
+      };
+
+      let csv = 'Subject,Sender,Probability,Risk Level,Timestamp\n';
+
+      stats.recentScans.forEach(scan => {
+        csv += `"${scan.subject.replace(/"/g, '""')}","${scan.sender.replace(/"/g, '""')}",${scan.probability},${scan.riskLevel},"${scan.timestamp}"\n`;
+      });
+
+      // Add summary row
+      csv += `\n"Total Scanned","","${stats.totalScanned}","",""\n`;
+      csv += `"Scams Detected","","${stats.scamsDetected}","",""\n`;
+      csv += `"Detection Rate","","${stats.totalScanned > 0 ? ((stats.scamsDetected / stats.totalScanned) * 100).toFixed(2) : 0}%","",""\n`;
+
+      downloadFile(
+        csv,
+        `scam-detector-report-${getFormattedDate()}.csv`,
+        'text/csv'
+      );
+
+      showMessage('Report exported successfully!', 'success');
+    } catch (error) {
+      showMessage('Error exporting data: ' + error.message, 'error');
+    }
+  });
+}
+
+/**
+ * Download file helper
+ */
+function downloadFile(content, filename, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+/**
+ * Get formatted date for filename
+ */
+function getFormattedDate() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  return `${year}${month}${day}-${hours}${minutes}`;
 }
 
 /**

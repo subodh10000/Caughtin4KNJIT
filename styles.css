@@ -1,0 +1,232 @@
+/**
+ * Caughtin4KNJIT - Warning Banner Styles
+ * Professional, modern design with risk-based color coding
+ */
+
+#caughtin4k-warning {
+  position: relative;
+  margin: 16px;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+  animation: slideDown 0.3s ease-out;
+  z-index: 10000;
+}
+
+/* Slide down animation */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Pulse animation for critical warnings */
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  50% {
+    box-shadow: 0 4px 20px rgba(183, 28, 28, 0.5);
+  }
+}
+
+/* Risk level colors */
+.scam-warning.risk-safe {
+  background: linear-gradient(135deg, #E8F5E9 0%, #C8E6C9 100%);
+  border-left: 5px solid #4CAF50;
+}
+
+.scam-warning.risk-medium {
+  background: linear-gradient(135deg, #FFF3E0 0%, #FFE0B2 100%);
+  border-left: 5px solid #FF9800;
+}
+
+.scam-warning.risk-high {
+  background: linear-gradient(135deg, #FFEBEE 0%, #FFCDD2 100%);
+  border-left: 5px solid #F44336;
+}
+
+.scam-warning.risk-critical {
+  background: linear-gradient(135deg, #FFEBEE 0%, #EF9A9A 100%);
+  border-left: 5px solid #B71C1C;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Warning header */
+.warning-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.warning-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 18px;
+  font-weight: 700;
+  color: #333;
+}
+
+.warning-icon {
+  font-size: 24px;
+}
+
+.warning-probability {
+  font-size: 24px;
+  font-weight: 700;
+  color: #B71C1C;
+}
+
+/* AI Badge */
+.ai-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Warning body */
+.warning-body {
+  color: #555;
+  line-height: 1.6;
+}
+
+.warning-section {
+  margin-bottom: 12px;
+}
+
+.warning-section strong {
+  color: #333;
+}
+
+.warning-section ul {
+  margin: 8px 0;
+  padding-left: 20px;
+}
+
+.warning-section li {
+  margin: 4px 0;
+}
+
+/* Risk badge */
+.risk-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.scam-warning.risk-safe .risk-badge {
+  background: #4CAF50;
+  color: white;
+}
+
+.scam-warning.risk-medium .risk-badge {
+  background: #FF9800;
+  color: white;
+}
+
+.scam-warning.risk-high .risk-badge {
+  background: #F44336;
+  color: white;
+}
+
+.scam-warning.risk-critical .risk-badge {
+  background: #B71C1C;
+  color: white;
+}
+
+/* AI Section */
+.ai-section {
+  margin-top: 16px;
+  padding: 12px;
+  background: rgba(102, 126, 234, 0.1);
+  border-radius: 6px;
+  border-left: 3px solid #667eea;
+}
+
+.ai-section p {
+  margin: 8px 0;
+  color: #444;
+}
+
+.ai-confidence {
+  margin-top: 8px;
+  font-size: 13px;
+  color: #667eea;
+  font-weight: 600;
+}
+
+/* Action buttons */
+.warning-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.warning-actions button {
+  padding: 10px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: inherit;
+}
+
+.btn-delete {
+  background: #F44336;
+  color: white;
+}
+
+.btn-delete:hover {
+  background: #D32F2F;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(244, 67, 54, 0.3);
+}
+
+.btn-report {
+  background: #FF9800;
+  color: white;
+}
+
+.btn-report:hover {
+  background: #F57C00;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(255, 152, 0, 0.3);
+}
+
+.btn-dismiss {
+  background: #9E9E9E;
+  color: white;
+}
+
+.btn-dismiss:hover {
+  background: #757575;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(158, 158, 158, 0.3);
+}
+
+.warning-actions button:active {
+  transform: translateY(0);
+}

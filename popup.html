@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Caughtin4KNJIT Dashboard</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      width: 400px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: #333;
+    }
+
+    .container {
+      padding: 20px;
+    }
+
+    .header {
+      text-align: center;
+      color: white;
+      margin-bottom: 20px;
+    }
+
+    .header h1 {
+      font-size: 24px;
+      margin-bottom: 5px;
+    }
+
+    .header p {
+      font-size: 13px;
+      opacity: 0.9;
+    }
+
+    .card {
+      background: white;
+      border-radius: 12px;
+      padding: 16px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .stat-box {
+      background: linear-gradient(135deg, #f5f7fa 0%, #e3e7ed 100%);
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 32px;
+      font-weight: 700;
+      color: #667eea;
+      display: block;
+    }
+
+    .stat-label {
+      font-size: 12px;
+      color: #666;
+      margin-top: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .protection-rate {
+      grid-column: 1 / -1;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+    }
+
+    .protection-rate .stat-value {
+      color: white;
+    }
+
+    .protection-rate .stat-label {
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: #333;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-indicator {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+
+    .status-active {
+      background: #4CAF50;
+      box-shadow: 0 0 8px rgba(76, 175, 80, 0.5);
+    }
+
+    .status-inactive {
+      background: #9E9E9E;
+    }
+
+    .api-config {
+      margin-top: 12px;
+      padding: 12px;
+      background: #f5f7fa;
+      border-radius: 6px;
+    }
+
+    .api-config input {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 13px;
+      margin: 8px 0;
+      font-family: 'Courier New', monospace;
+    }
+
+    .api-config button {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-top: 8px;
+    }
+
+    .btn-save {
+      background: #667eea;
+      color: white;
+    }
+
+    .btn-save:hover {
+      background: #5568d3;
+      transform: translateY(-1px);
+    }
+
+    .btn-remove {
+      background: #F44336;
+      color: white;
+    }
+
+    .btn-remove:hover {
+      background: #D32F2F;
+      transform: translateY(-1px);
+    }
+
+    .btn-clear {
+      background: #FF9800;
+      color: white;
+    }
+
+    .btn-clear:hover {
+      background: #F57C00;
+      transform: translateY(-1px);
+    }
+
+    .api-link {
+      font-size: 11px;
+      color: #666;
+      text-align: center;
+      margin-top: 8px;
+    }
+
+    .api-link a {
+      color: #667eea;
+      text-decoration: none;
+    }
+
+    .api-link a:hover {
+      text-decoration: underline;
+    }
+
+    .recent-scans {
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .scan-item {
+      padding: 10px;
+      margin-bottom: 8px;
+      background: #f5f7fa;
+      border-radius: 6px;
+      border-left: 3px solid #ddd;
+    }
+
+    .scan-item.risk-safe {
+      border-left-color: #4CAF50;
+    }
+
+    .scan-item.risk-medium {
+      border-left-color: #FF9800;
+    }
+
+    .scan-item.risk-high {
+      border-left-color: #F44336;
+    }
+
+    .scan-item.risk-critical {
+      border-left-color: #B71C1C;
+    }
+
+    .scan-subject {
+      font-weight: 600;
+      font-size: 13px;
+      color: #333;
+      margin-bottom: 4px;
+    }
+
+    .scan-details {
+      font-size: 11px;
+      color: #666;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .scan-probability {
+      font-weight: 600;
+      color: #667eea;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 30px;
+      color: #999;
+      font-size: 14px;
+    }
+
+    .message {
+      padding: 10px;
+      border-radius: 6px;
+      margin-top: 8px;
+      font-size: 13px;
+      display: none;
+    }
+
+    .message.success {
+      background: #E8F5E9;
+      color: #2E7D32;
+      border: 1px solid #4CAF50;
+    }
+
+    .message.error {
+      background: #FFEBEE;
+      color: #C62828;
+      border: 1px solid #F44336;
+    }
+
+    .message.show {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to { opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <h1>🛡️ Caughtin4KNJIT</h1>
+      <p>Gmail Scam Detector Dashboard</p>
+    </div>
+
+    <!-- Statistics Card -->
+    <div class="card">
+      <div class="section-title">📊 Statistics</div>
+      <div class="stats-grid">
+        <div class="stat-box">
+          <span class="stat-value" id="totalScanned">0</span>
+          <span class="stat-label">Emails Scanned</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-value" id="scamsDetected">0</span>
+          <span class="stat-label">Scams Detected</span>
+        </div>
+        <div class="stat-box protection-rate">
+          <span class="stat-value" id="protectionRate">0%</span>
+          <span class="stat-label">Protection Rate</span>
+        </div>
+      </div>
+      <button class="btn-clear" id="clearStats">Clear Statistics</button>
+    </div>
+
+    <!-- Claude AI Configuration Card -->
+    <div class="card">
+      <div class="section-title">
+        🤖 Claude AI
+        <span id="aiStatus" class="status-indicator status-inactive"></span>
+        <span id="aiStatusText" style="font-size: 12px; font-weight: 400; color: #666;">Not Configured</span>
+      </div>
+      <div class="api-config">
+        <input
+          type="password"
+          id="apiKeyInput"
+          placeholder="Enter your Claude API key (sk-ant-...)"
+          autocomplete="off"
+        />
+        <button class="btn-save" id="saveApiKey">💾 Save API Key</button>
+        <button class="btn-remove" id="removeApiKey" style="display: none;">🗑️ Remove API Key</button>
+        <div class="api-link">
+          <a href="https://console.anthropic.com/" target="_blank">Get API Key from Anthropic Console →</a>
+        </div>
+        <div id="apiMessage" class="message"></div>
+      </div>
+    </div>
+
+    <!-- Recent Scans Card -->
+    <div class="card">
+      <div class="section-title">🕒 Recent Scans</div>
+      <div class="recent-scans" id="recentScans">
+        <div class="empty-state">No scans yet. Open an email in Gmail to start!</div>
+      </div>
+    </div>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

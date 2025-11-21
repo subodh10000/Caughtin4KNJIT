@@ -6,6 +6,8 @@
 // Initialize detectors
 let scamDetector = null;
 let claudeAPI = null;
+let headerAnalyzer = null;
+let linkAnalyzer = null;
 let lastCheckedEmailId = null;
 let isProcessing = false;
 
@@ -13,6 +15,8 @@ let isProcessing = false;
 function initialize() {
   scamDetector = new ScamDetector();
   claudeAPI = new ClaudeAPI();
+  headerAnalyzer = new EmailHeaderAnalyzer();
+  linkAnalyzer = new LinkAnalyzer();
 
   // Start monitoring Gmail
   startMonitoring();
@@ -77,9 +81,32 @@ async function checkForOpenEmail() {
     // Run local analysis first (instant)
     const localResults = scamDetector.analyze(emailData);
 
+    // Run header analysis
+    const headerResults = await headerAnalyzer.analyze(emailData.sender);
+
+    // Run link analysis
+    const linkResults = await linkAnalyzer.analyzeLinks(emailData.links || []);
+
+    // Combine all risk scores
+    const combinedScore = Math.round(
+      (localResults.probability * 0.5) +
+      (headerResults.overallRisk * 0.3) +
+      (linkResults.overallRisk * 0.2)
+    );
+
+    localResults.probability = Math.min(combinedScore, 100);
+    localResults.riskLevel = scamDetector.getRiskLevel(localResults.probability);
+
     // Show warning if probability >= 30%
     if (localResults.probability >= 30) {
-      displayWarning(emailData, localResults, null);
+      displayWarning(emailData, localResults, null, headerResults, linkResults);
+    }
+
+    // Highlight links in email body
+    const emailBody = document.querySelector('.a3s.aiL') ||
+                      document.querySelector('[data-message-id] .ii.gt');
+    if (emailBody && linkResults.totalLinks > 0) {
+      await linkAnalyzer.highlightLinks(emailBody, linkResults);
     }
 
     // Update badge
@@ -111,9 +138,14 @@ async function checkForOpenEmail() {
 
           // Update warning with AI results
           if (combinedProbability >= 30) {
-            displayWarning(emailData, combinedResults, aiResults);
+            displayWarning(emailData, combinedResults, aiResults, headerResults, linkResults);
           } else {
             removeWarning();
+          }
+
+          // Re-highlight links (in case they were removed)
+          if (emailBody && linkResults.totalLinks > 0) {
+            await linkAnalyzer.highlightLinks(emailBody, linkResults);
           }
 
           // Update badge with combined results
@@ -217,7 +249,7 @@ function extractEmailData() {
 /**
  * Display warning banner
  */
-function displayWarning(emailData, results, aiResults) {
+function displayWarning(emailData, results, aiResults, headerResults, linkResults) {
   // Remove existing warning
   removeWarning();
 
@@ -260,6 +292,102 @@ function displayWarning(emailData, results, aiResults) {
           <div><strong>Red Flags:</strong> ${aiResults.redFlags.join(', ')}</div>
         ` : ''}
         <div class="ai-confidence">Confidence: ${aiResults.confidence}%</div>
+      </div>
+    `;
+  }
+
+  // Add header analysis section
+  if (headerResults) {
+    content += `
+      <div class="warning-section header-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('expanded')">
+          <strong>🔒 Email Authentication & Headers</strong>
+          <span class="expand-icon">▼</span>
+        </div>
+        <div class="section-content">
+          <div class="auth-grid">
+            <div class="auth-item">
+              <span class="auth-label">SPF:</span>
+              <span class="auth-value ${headerAnalyzer.getStatusClass(headerResults.authentication.spf.status)}">
+                ${headerAnalyzer.getStatusIcon(headerResults.authentication.spf.status)} ${headerResults.authentication.spf.status.toUpperCase()}
+              </span>
+              <div class="auth-detail">${headerResults.authentication.spf.details}</div>
+            </div>
+            <div class="auth-item">
+              <span class="auth-label">DKIM:</span>
+              <span class="auth-value ${headerAnalyzer.getStatusClass(headerResults.authentication.dkim.status)}">
+                ${headerAnalyzer.getStatusIcon(headerResults.authentication.dkim.status)} ${headerResults.authentication.dkim.status.toUpperCase()}
+              </span>
+              <div class="auth-detail">${headerResults.authentication.dkim.details}</div>
+            </div>
+            <div class="auth-item">
+              <span class="auth-label">DMARC:</span>
+              <span class="auth-value ${headerAnalyzer.getStatusClass(headerResults.authentication.dmarc.status)}">
+                ${headerAnalyzer.getStatusIcon(headerResults.authentication.dmarc.status)} ${headerResults.authentication.dmarc.status.toUpperCase()}
+              </span>
+              <div class="auth-detail">${headerResults.authentication.dmarc.details}</div>
+            </div>
+          </div>
+          ${headerResults.sender.ip ? `
+            <div class="sender-info">
+              <strong>Sender IP:</strong> ${headerResults.sender.ip}
+              ${headerResults.sender.country ? `
+                <span class="sender-location ${headerResults.sender.isSuspicious ? 'suspicious' : ''}">
+                  📍 ${headerResults.sender.country} ${headerResults.sender.isSuspicious ? '⚠️ Suspicious' : ''}
+                </span>
+              ` : ''}
+            </div>
+          ` : ''}
+          ${headerResults.spoofing.displayNameMismatch ? `
+            <div class="spoofing-alert">
+              ⚠️ <strong>Display Name Spoofing Detected!</strong><br>
+              ${headerResults.spoofing.details}
+            </div>
+          ` : ''}
+        </div>
+      </div>
+    `;
+  }
+
+  // Add link analysis section
+  if (linkResults && linkResults.totalLinks > 0) {
+    content += `
+      <div class="warning-section link-section">
+        <div class="section-header" onclick="this.parentElement.classList.toggle('expanded')">
+          <strong>🔗 Link Analysis (${linkResults.totalLinks} links)</strong>
+          <span class="expand-icon">▼</span>
+        </div>
+        <div class="section-content">
+          <div class="link-summary">
+            ${linkResults.safeLinks.length > 0 ? `<span class="link-stat safe">🟢 ${linkResults.safeLinks.length} Safe</span>` : ''}
+            ${linkResults.suspiciousLinks.length > 0 ? `<span class="link-stat suspicious">🟡 ${linkResults.suspiciousLinks.length} Suspicious</span>` : ''}
+            ${linkResults.dangerousLinks.length > 0 ? `<span class="link-stat dangerous">🔴 ${linkResults.dangerousLinks.length} Dangerous</span>` : ''}
+          </div>
+          ${linkResults.dangerousLinks.length > 0 ? `
+            <div class="dangerous-links">
+              <strong>⚠️ Dangerous Links Found:</strong>
+              <ul>
+                ${linkResults.dangerousLinks.slice(0, 3).map(link => `
+                  <li>
+                    <div class="link-url">${link.displayUrl}</div>
+                    <div class="link-reasons">${link.reasons.join(', ')}</div>
+                  </li>
+                `).join('')}
+              </ul>
+            </div>
+          ` : ''}
+          ${linkResults.suspiciousLinks.length > 0 && linkResults.dangerousLinks.length === 0 ? `
+            <div class="suspicious-links">
+              <strong>Suspicious Links:</strong>
+              <ul>
+                ${linkResults.suspiciousLinks.slice(0, 3).map(link => `
+                  <li>${link.displayUrl} - ${link.reasons[0]}</li>
+                `).join('')}
+              </ul>
+            </div>
+          ` : ''}
+          <div class="link-note">💡 Links in the email are color-coded for safety</div>
+        </div>
       </div>
     `;
   }

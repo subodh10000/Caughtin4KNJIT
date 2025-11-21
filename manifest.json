@@ -1,15 +1,16 @@
 {
   "manifest_version": 3,
   "name": "Caughtin4KNJIT",
-  "version": "1.0.0",
-  "description": "Advanced Gmail scam email detector using local pattern matching and optional Claude AI integration",
+  "version": "2.0.0",
+  "description": "Advanced Gmail scam detector with AI, email authentication (SPF/DKIM/DMARC), IP geolocation, and intelligent link analysis",
   "permissions": [
     "activeTab",
     "storage"
   ],
   "host_permissions": [
     "https://mail.google.com/*",
-    "https://api.anthropic.com/*"
+    "https://api.anthropic.com/*",
+    "http://ip-api.com/*"
   ],
   "background": {
     "service_worker": "background.js"
@@ -17,7 +18,7 @@
   "content_scripts": [
     {
       "matches": ["https://mail.google.com/*"],
-      "js": ["scam-detector.js", "claude-api.js", "content.js"],
+      "js": ["scam-detector.js", "claude-api.js", "email-header-analyzer.js", "link-analyzer.js", "content.js"],
       "css": ["styles.css"],
       "run_at": "document_idle"
     }

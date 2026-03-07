@@ -13,18 +13,18 @@
     "http://ip-api.com/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "src/background/background.js"
   },
   "content_scripts": [
     {
       "matches": ["https://mail.google.com/*"],
-      "js": ["scam-detector.js", "claude-api.js", "email-header-analyzer.js", "link-analyzer.js", "content.js"],
-      "css": ["styles.css"],
+      "js": ["src/content/scam-detector.js", "src/utils/claude-api.js", "src/utils/email-header-analyzer.js", "src/utils/link-analyzer.js", "src/content/content.js"],
+      "css": ["src/styles/styles.css"],
       "run_at": "document_idle"
     }
   ],
   "action": {
-    "default_popup": "popup.html",
+    "default_popup": "src/popup/popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
